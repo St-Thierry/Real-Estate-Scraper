@@ -1,0 +1,74 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+def scrape_linkedin_profile(profile_id):
+    # Create the URL for the LinkedIn profile
+    url = f"https://www.linkedin.com/in/{profile_id}"
+
+    # Send a GET request to the profile URL and get the content
+    response = requests.get(url)
+    content = response.content
+
+    # Use BeautifulSoup to parse the HTML content
+    soup = BeautifulSoup(content, 'html.parser')
+
+    # Extract the name of the LinkedIn user
+    name_element = soup.find('li', {'class': 'inline t-24 t-black t-normal break-words'})
+    name = name_element.get_text().strip()
+
+    # Extract the headline of the LinkedIn user
+    headline_element = soup.find('h2', {'class': 'mt1 t-18 t-black t-normal break-words'})
+    headline = headline_element.get_text().strip()
+
+    # Extract the location of the LinkedIn user
+    location_element = soup.find('li', {'class': 't-16 t-black t-normal inline-block'})
+    location = location_element.get_text().strip()
+
+    # Extract the summary of the LinkedIn user
+    summary_element = soup.find('div', {'class': 'mt2'})
+    summary = summary_element.get_text().strip()
+
+    # Extract the experience section of the LinkedIn user
+    experience_section = soup.find('section', {'id': 'experience-section'})
+    experience_list = experience_section.find('ul')
+    experience_items = experience_list.find_all('li')
+
+    experience = []
+    for item in experience_items:
+        job_title = item.find('h3').get_text().strip()
+        company_name = item.find('p', {'class': 't-14 t-black t-normal inline-block'}).get_text().strip()
+        company_location = item.find('p', {'class': 'pv-entity__location t-14 t-black--light t-normal'}).get_text().strip()
+        date_range = item.find('h4', {'class': 'pv-entity__date-range t-14 t-black--light t-normal'}).get_text().strip()
+        experience.append({
+            'job_title': job_title,
+            'company_name': company_name,
+            'company_location': company_location,
+            'date_range': date_range
+        })
+
+    # Create a dictionary of the scraped data
+    scraped_data = {
+        'name': name,
+        'headline': headline,
+        'location': location,
+        'summary': summary,
+        'experience': experience
+    }
+
+    return scraped_data
+
+# Define the profile IDs that you want to scrape
+profile_ids = ["john-doe-12345", "jane-doe-67890"]
+
+# Scrape the LinkedIn profiles and store the data in a list
+scraped_data_list = []
+for profile_id in profile_ids:
+    scraped_data = scrape_linkedin_profile(profile_id)
+    scraped_data_list.append(scraped_data)
+
+# Convert the list of dictionaries to a pandas DataFrame
+df = pd.DataFrame.from_records(scraped_data_list)
+
+# Export the DataFrame to a CSV file
+df.to_csv("linkedin_profiles.csv", index=False)
